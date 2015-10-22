@@ -1,0 +1,102 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.logsindexer</groupId>
+    <artifactId>logsindexer</artifactId>
+    <version>0.1.1</version>
+    <packaging>jar</packaging>
+
+    <name>sense-logs-indexer</name>
+    <url>http://hello.is</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <dropwizard.version>0.8.2</dropwizard.version>
+        <jodatime.version>20150319</jodatime.version>
+        <java.version>1.8</java.version>
+        <jersey.version>2.19</jersey.version>
+        <amazonaws.version>1.6.0</amazonaws.version>
+        <suripu.version>0.5.60</suripu.version>
+    </properties>
+
+    <distributionManagement>
+        <site>
+            <id>s3.site</id>
+            <url>s3://hello-maven/site</url>
+        </site>
+        <repository>
+            <id>s3.release</id>
+            <url>s3://hello-maven/release</url>
+        </repository>
+        <snapshotRepository>
+            <id>s3.snapshot</id>
+            <url>s3://hello-maven/snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <repositories>
+        <repository>
+            <id>project.local</id>
+            <name>project</name>
+            <url>file:${project.basedir}/repo</url>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>warn</checksumPolicy>
+            </releases>
+            <id>s3.release</id>
+            <name>Hello Releases</name>
+            <url>s3://hello-maven/release</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+        <dependency>
+            <groupId>no.found.elasticsearch</groupId>
+            <artifactId>elasticsearch-transport-module</artifactId>
+            <version>0.8.9-1.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hello.suripu</groupId>
+            <artifactId>suripu-api</artifactId>
+            <version>${suripu.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-core</artifactId>
+            <version>${dropwizard.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>joda-time</groupId>
+                    <artifactId>joda-time</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>suripu-jodatime</groupId>
+            <artifactId>suripu-jodatime</artifactId>
+            <version>${jodatime.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>amazon-kinesis-client</artifactId>
+            <version>${amazonaws.version}</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <extensions>
+            <extension>
+                <groupId>org.kuali.maven.wagons</groupId>
+                <artifactId>maven-s3-wagon</artifactId>
+                <version>1.2.1</version>
+            </extension>
+        </extensions>
+    </build>
+</project>
