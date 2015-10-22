@@ -62,12 +62,13 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                     public void afterBulk(long executionId,
                                           BulkRequest request,
                                           BulkResponse response) {
-                        LOGGER.debug("Succeeded {} !");
+
+                        LOGGER.info("Successfully bulk-processed {} documents  {} requests !", response.getItems().length, request.requests().size());
                     }
 
                     public void afterBulk(long executionId,
                                           BulkRequest request,
-                                          Throwable failure) {
+                                          Throwable failure) {from
                         LOGGER.error("Failed !");
                     }
 
@@ -96,7 +97,7 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                     }
                 }
             } catch (InvalidProtocolBufferException e) {
-                LOGGER.error("Failed converting protobuf: {}", e.getMessage());
+                LOGGER.error("Failed to parse protobuf because {}", e.getMessage());
             }
         }
     }
@@ -121,9 +122,8 @@ public class ElasticSearchIndexer implements IRecordProcessor {
             try {
                 final CreateIndexResponse createIndexResponse = transportClient.admin().indices().create(createIndexRequest).actionGet();
                 LOGGER.info("Index {} created - {}", indexName, createIndexResponse.isAcknowledged());
-            }
-            catch (final IndexAlreadyExistsException iaee) {
-                LOGGER.error("Index {} already existed", indexName);
+            } catch (final IndexAlreadyExistsException iaee) {
+                LOGGER.warn("Index {} already existed", indexName);
             }
             currentIndexes = getCurrentIndexes(transportClient);
         }
