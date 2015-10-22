@@ -68,7 +68,7 @@ public class ElasticSearchIndexer implements IRecordProcessor {
 
                     public void afterBulk(long executionId,
                                           BulkRequest request,
-                                          Throwable failure) {from
+                                          Throwable failure) {
                         LOGGER.error("Failed !");
                     }
 
