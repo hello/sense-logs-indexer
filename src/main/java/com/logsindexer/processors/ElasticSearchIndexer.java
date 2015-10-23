@@ -90,7 +90,10 @@ public class ElasticSearchIndexer implements IRecordProcessor {
 
                         final String indexName = elasticSearchConfiguration.getIndexPrefix() + new DateTime(timestamp).toString(DateTimeFormat.forPattern("yyyy-MM-dd"));
 
-                        createNewIndexOnTheFlyIfNecessary(indexName);
+                        if (!currentIndexes.contains(indexName)) {
+                            createIndex(indexName); // Create new index with custom settings and mappings on the fly
+                            currentIndexes = getCurrentIndexes(transportClient);  // Update current indexes list
+                        }
 
                         bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(
                                 new SenseDocument(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin()).toMap()));
@@ -110,22 +113,19 @@ public class ElasticSearchIndexer implements IRecordProcessor {
         return Arrays.asList(client.admin().cluster().prepareState().execute().actionGet().getState().getMetaData().concreteAllIndices());
     }
 
-    private void createNewIndexOnTheFlyIfNecessary(final String indexName) {
-        if (!currentIndexes.contains(indexName)) {
-            LOGGER.info("Prepare to create index {}", indexName);
-            final CreateIndexRequest createIndexRequest = new CreateIndexRequest(
-                    indexName,
-                    ImmutableSettings.settingsBuilder().loadFromSource(ElasticSearchIndexSettings.createDefault().toJSONString().get()).build()
-            ).mapping(ElasticSearchIndexMappings.DEFAULT_KEY, ElasticSearchIndexMappings.createDefault().get());
 
+    private void createIndex(final String indexName) {
+        LOGGER.info("Prepare to create index {}", indexName);
+        final CreateIndexRequest createIndexRequest = new CreateIndexRequest(
+                indexName,
+                ImmutableSettings.settingsBuilder().loadFromSource(ElasticSearchIndexSettings.createDefault().toJSONString().get()).build()
+        ).mapping(ElasticSearchIndexMappings.DEFAULT_KEY, ElasticSearchIndexMappings.createDefault().get());
 
-            try {
-                final CreateIndexResponse createIndexResponse = transportClient.admin().indices().create(createIndexRequest).actionGet();
-                LOGGER.info("Index {} created - {}", indexName, createIndexResponse.isAcknowledged());
-            } catch (final IndexAlreadyExistsException iaee) {
-                LOGGER.warn("Index {} already existed", indexName);
-            }
-            currentIndexes = getCurrentIndexes(transportClient);
+        try {
+            final CreateIndexResponse createIndexResponse = transportClient.admin().indices().create(createIndexRequest).actionGet();
+            LOGGER.info("Index {} created - {}", indexName, createIndexResponse.isAcknowledged());
+        } catch (final IndexAlreadyExistsException iaee) {
+            LOGGER.warn("Index {} already existed", indexName);
         }
     }
 }
