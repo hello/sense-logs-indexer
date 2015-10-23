@@ -63,7 +63,7 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                                           BulkRequest request,
                                           BulkResponse response) {
 
-                        LOGGER.info("Successfully bulk-processed {} documents  {} requests !", response.getItems().length, request.requests().size());
+                        LOGGER.info("Successfully bulk-processed {} documents from {} requests !", response.getItems().length, request.requests().size());
                     }
 
                     public void afterBulk(long executionId,
