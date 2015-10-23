@@ -96,7 +96,7 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                         }
 
                         bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(
-                                new SenseDocument(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin()).toMap()));
+                                new SenseDocument(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion()).toMap()));
                     }
                 }
             } catch (InvalidProtocolBufferException e) {

@@ -25,8 +25,10 @@ public class SenseDocument {
     public final Boolean hasFirmwareCrash;
     public final Boolean hasWifiInfo;
     public final Boolean hasDust;
+    public final String topFirmwareVersion;
+    public final String middleFirmwareVersion;
 
-    public SenseDocument(final String senseId, final Long epochMillis, final String text, final String origin) {
+    public SenseDocument(final String senseId, final Long epochMillis, final String text, final String origin, final String topFirmwareVersion, final String middleFirmwareVersion) {
         this.senseId = senseId;
         this.epochMillis = epochMillis;
         this.timestamp = new DateTime(epochMillis).toString(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z"));
@@ -36,6 +38,8 @@ public class SenseDocument {
         this.hasFirmwareCrash = text.matches(FIRMWARE_CRASH_REGEX);
         this.hasWifiInfo = text.matches(WIFI_INFO_REGEX);
         this.hasDust = text.matches(DUST_REGEX);
+        this.topFirmwareVersion = topFirmwareVersion;
+        this.middleFirmwareVersion = middleFirmwareVersion;
     }
     public Map<String, Object> toMap() {
         final ObjectMapper objectMapper = new ObjectMapper();
