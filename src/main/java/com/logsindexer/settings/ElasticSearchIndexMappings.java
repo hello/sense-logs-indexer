@@ -28,6 +28,10 @@ public class ElasticSearchIndexMappings {
                     .field("type", "date")
                     .field("format", "dateOptionalTime")
                     .endObject()
+                    .startObject("timestamp")
+                    .field("type", "date")
+                    .field("format", "dateOptionalTime")
+                    .endObject()
                     .endObject()
                     .endObject()
                     .endObject());

@@ -3,6 +3,8 @@ package com.logsindexer.models;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 
 import java.util.Map;
 
@@ -15,7 +17,8 @@ public class SenseDocument {
     public static final String DEFAULT_CATEGORY = "sense";
 
     public final String senseId;
-    public final Long timestamp;
+    public final Long epochMillis;
+    public final String timestamp;
     public final String text;
     public final String origin;
     public final Boolean hasAlarm;
@@ -23,9 +26,10 @@ public class SenseDocument {
     public final Boolean hasWifiInfo;
     public final Boolean hasDust;
 
-    public SenseDocument(final String senseId, final Long timestamp, final String text, final String origin) {
+    public SenseDocument(final String senseId, final Long epochMillis, final String text, final String origin) {
         this.senseId = senseId;
-        this.timestamp = timestamp;
+        this.epochMillis = epochMillis;
+        this.timestamp = new DateTime(epochMillis).toString(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss'Z"));
         this.text = text;
         this.origin =  origin;
         this.hasAlarm = text.matches(ALARM_RINGING_REGEX);
