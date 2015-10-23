@@ -83,4 +83,20 @@ public class ElasticSearchConfiguration {
     public Integer getMaxBulkSizeMb() {
         return maxBulkSizeMb;
     }
+
+    @Valid
+    @NotNull
+    @JsonProperty("bulk_concurrent_requests")
+    private Integer bulkConcurrentRequests;
+    public Integer getBulkConcurrentRequests() {
+        return bulkConcurrentRequests;
+    }
+
+    @Valid
+    @NotNull
+    @JsonProperty("bulk_await_close_seconds")
+    private Integer bulkAwaitCloseSeconds;
+    public Integer getBulkAwaitCloseSeconds() {
+        return bulkAwaitCloseSeconds;
+    }
 }

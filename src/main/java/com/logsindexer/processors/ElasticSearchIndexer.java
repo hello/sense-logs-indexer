@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 public class ElasticSearchIndexer implements IRecordProcessor {
@@ -75,6 +76,7 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                 })
                 .setBulkActions(elasticSearchConfiguration.getMaxBulkActions())
                 .setBulkSize(new ByteSizeValue(elasticSearchConfiguration.getMaxBulkSizeMb(), ByteSizeUnit.MB))
+                .setConcurrentRequests(elasticSearchConfiguration.getBulkConcurrentRequests())
                 .build();
 
         for (final Record record : records) {
@@ -102,6 +104,15 @@ public class ElasticSearchIndexer implements IRecordProcessor {
             } catch (InvalidProtocolBufferException e) {
                 LOGGER.error("Failed to parse protobuf because {}", e.getMessage());
             }
+        }
+        try {
+            bulkProcessor.awaitClose(elasticSearchConfiguration.getBulkAwaitCloseSeconds(), TimeUnit.SECONDS);
+            LOGGER.info("Bulk is full and will be closed in {} seconds", elasticSearchConfiguration.getBulkAwaitCloseSeconds());
+        }
+        catch (final InterruptedException ie) {
+            LOGGER.error("Failed to close bulk processor because {}", ie.getMessage());
+            bulkProcessor.close(); // force closing bulk
+            LOGGER.info("Successfully forced closing bulk", ie.getMessage());
         }
     }
 
