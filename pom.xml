@@ -89,6 +89,11 @@
             <artifactId>amazon-kinesis-client</artifactId>
             <version>${amazonaws.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-metrics-graphite</artifactId>
+            <version>${dropwizard.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <extensions>
