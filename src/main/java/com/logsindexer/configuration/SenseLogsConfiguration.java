@@ -1,6 +1,7 @@
 package com.logsindexer.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.hello.suripu.coredw8.configuration.GraphiteConfiguration;
 import io.dropwizard.Configuration;
 
 import javax.validation.Valid;
