@@ -1,5 +1,7 @@
 package com.logsindexer.processors;
 
+import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
+import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason;
@@ -116,8 +118,19 @@ public class ElasticSearchIndexer implements IRecordProcessor {
         }
     }
 
-    public void shutdown(IRecordProcessorCheckpointer checkpointer, ShutdownReason reason) {
-        LOGGER.info("shutdown at {} because {}", checkpointer.toString(), reason);
+    public void shutdown(IRecordProcessorCheckpointer iRecordProcessorCheckpointer, ShutdownReason shutdownReason) {
+        LOGGER.info("shutdown at {} because {}", iRecordProcessorCheckpointer.toString(), shutdownReason);
+        if(shutdownReason == ShutdownReason.TERMINATE) {
+            LOGGER.warn("Going to checkpoint");
+            try {
+                iRecordProcessorCheckpointer.checkpoint();
+                LOGGER.warn("Checkpointed successfully");
+            } catch (InvalidStateException e) {
+                LOGGER.error(e.getMessage());
+            } catch (ShutdownException e) {
+                LOGGER.error(e.getMessage());
+            }
+        }
     }
 
     private List<String> getCurrentIndexes(final TransportClient client) {
