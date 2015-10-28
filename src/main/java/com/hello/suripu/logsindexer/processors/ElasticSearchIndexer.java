@@ -1,4 +1,4 @@
-package com.logsindexer.processors;
+package com.hello.suripu.logsindexer.processors;
 
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
@@ -8,10 +8,11 @@ import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason;
 import com.amazonaws.services.kinesis.model.Record;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.hello.suripu.api.logging.LoggingProtos;
-import com.logsindexer.configuration.ElasticSearchConfiguration;
-import com.logsindexer.models.SenseDocument;
-import com.logsindexer.settings.ElasticSearchIndexMappings;
-import com.logsindexer.settings.ElasticSearchIndexSettings;
+import com.hello.suripu.logsindexer.models.SenseDocument;
+import com.hello.suripu.logsindexer.settings.ElasticSearchIndexSettings;
+import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
+import com.hello.suripu.logsindexer.settings.ElasticSearchIndexMappings;
+
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;

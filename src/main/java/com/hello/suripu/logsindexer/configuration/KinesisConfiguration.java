@@ -1,4 +1,4 @@
-package com.logsindexer.configuration;
+package com.hello.suripu.logsindexer.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

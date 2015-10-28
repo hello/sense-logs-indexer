@@ -1,4 +1,4 @@
-package com.logsindexer.settings;
+package com.hello.suripu.logsindexer.settings;
 
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;

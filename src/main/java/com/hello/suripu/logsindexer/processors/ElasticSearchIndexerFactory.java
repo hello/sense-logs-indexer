@@ -1,9 +1,9 @@
-package com.logsindexer.processors;
+package com.hello.suripu.logsindexer.processors;
 
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorFactory;
-import com.logsindexer.configuration.ElasticSearchConfiguration;
-import com.logsindexer.settings.ElasticSearchTransportClient;
+import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
+import com.hello.suripu.logsindexer.settings.ElasticSearchTransportClient;
 
 
 public class ElasticSearchIndexerFactory implements IRecordProcessorFactory {

@@ -1,7 +1,7 @@
-package com.logsindexer.framework;
+package com.hello.suripu.logsindexer.framework;
 
-import com.logsindexer.processors.ElasticSearchCommand;
-import com.logsindexer.configuration.SenseLogsConfiguration;
+import com.hello.suripu.logsindexer.processors.ElasticSearchCommand;
+import com.hello.suripu.logsindexer.configuration.SenseLogsConfiguration;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;

@@ -1,4 +1,4 @@
-package com.logsindexer.models;
+package com.hello.suripu.logsindexer.models;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;

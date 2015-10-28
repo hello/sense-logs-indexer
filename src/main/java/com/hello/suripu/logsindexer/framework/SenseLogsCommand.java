@@ -1,4 +1,4 @@
-package com.logsindexer.framework;
+package com.hello.suripu.logsindexer.framework;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.ConfiguredCommand;

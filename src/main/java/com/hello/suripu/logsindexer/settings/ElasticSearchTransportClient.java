@@ -1,7 +1,8 @@
-package com.logsindexer.settings;
+package com.hello.suripu.logsindexer.settings;
 
 
-import com.logsindexer.configuration.ElasticSearchConfiguration;
+import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
+
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;

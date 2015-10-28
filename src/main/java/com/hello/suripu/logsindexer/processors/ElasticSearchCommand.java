@@ -1,4 +1,4 @@
-package com.logsindexer.processors;
+package com.hello.suripu.logsindexer.processors;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -6,11 +6,17 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorF
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+<<<<<<< HEAD:src/main/java/com/logsindexer/processors/ElasticSearchCommand.java
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.logsindexer.configuration.SenseLogsConfiguration;
 import com.logsindexer.framework.SenseLogsCommand;
+=======
+import com.hello.suripu.logsindexer.configuration.SenseLogsConfiguration;
+import com.hello.suripu.logsindexer.framework.SenseLogsCommand;
+
+>>>>>>> 42488b1c2de9afe3c48ea552dde918f0d4a912ff:src/main/java/com/hello/suripu/logsindexer/processors/ElasticSearchCommand.java
 import io.dropwizard.setup.Environment;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.slf4j.Logger;
