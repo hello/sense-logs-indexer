@@ -94,6 +94,9 @@
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-metrics-graphite</artifactId>
             <version>${dropwizard.version}</version>
+            <groupId>com.dcsquare</groupId>
+            <artifactId>dropwizard-papertrail</artifactId>
+            <version>1.1</version>
         </dependency>
     </dependencies>
     <build>
@@ -132,7 +135,7 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.hello.suripu.admin.SuripuAdmin</mainClass>
+                                    <mainClass>com.hello.suripu.logsindexer.framework.SenseLogsIndexer</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

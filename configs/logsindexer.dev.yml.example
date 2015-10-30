@@ -22,6 +22,12 @@ elastic_search:
   bulk_concurrent_requests: 2
   bulk_await_close_seconds: 15
 
+logging:
+  level: INFO
+  loggers:
+    com.hello.suripu.logsindexer: DEBUG
+  appenders:
+     - type: console
 
 metrics_enabled: false
 

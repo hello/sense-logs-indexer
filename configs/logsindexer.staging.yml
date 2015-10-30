@@ -31,3 +31,17 @@ graphite:
   include_metrics:
     - com.hello
 
+logging:
+  level: INFO
+  loggers:
+    com.hello.suripu: DEBUG
+  appenders:
+    - type: file
+      threshold: DEBUG
+      currentLogFilename: /var/log/logsindexer/logsindexer.log
+      archivedLogFilenamePattern: /var/log/logsindexer/logsindexer-%d{yyyy-MM-dd}.log.gz
+      archivedFileCount: 7
+    - type: papertrail
+      host: logs2.papertrailapp.com
+      port: 11366
+      ident: logsindexer-dev
