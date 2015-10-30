@@ -94,6 +94,8 @@
             <groupId>io.dropwizard</groupId>
             <artifactId>dropwizard-metrics-graphite</artifactId>
             <version>${dropwizard.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.dcsquare</groupId>
             <artifactId>dropwizard-papertrail</artifactId>
             <version>1.1</version>
