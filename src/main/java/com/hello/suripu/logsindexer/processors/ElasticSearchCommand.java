@@ -6,6 +6,7 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorF
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -35,6 +37,7 @@ public class ElasticSearchCommand extends SenseLogsCommand<SenseLogsConfiguratio
             final String graphiteHostName = configuration.getGraphite().getHost();
             final String apiKey = configuration.getGraphite().getApiKey();
             final Integer interval = configuration.getGraphite().getReportingIntervalInSeconds();
+            final List<String> includeMetrics = configuration.getGraphite().getIncludeMetrics();
 
             final String env = (configuration.getDebug()) ? "dev" : "prod";
             final String prefix = String.format("%s.%s.logsindexer", apiKey, env);
@@ -45,7 +48,16 @@ public class ElasticSearchCommand extends SenseLogsCommand<SenseLogsConfiguratio
                     .prefixedWith(prefix)
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
-                    .filter(MetricFilter.ALL)
+                    .filter(new MetricFilter() {
+                        public boolean matches(String name, Metric metric) {
+                            for (final String includeMetric : includeMetrics) {
+                                if (name.startsWith(includeMetric)){
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    })
                     .build(graphite);
             graphiteReporter.start(interval, TimeUnit.SECONDS);
 
