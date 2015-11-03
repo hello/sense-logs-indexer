@@ -1,4 +1,4 @@
-debug: true
+debug: false
 
 kinesis:
   endpoint : https://kinesis.us-east-1.amazonaws.com
