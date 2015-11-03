@@ -6,13 +6,15 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason;
 import com.amazonaws.services.kinesis.model.Record;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.hello.suripu.api.logging.LoggingProtos;
-import com.hello.suripu.logsindexer.models.SenseDocument;
-import com.hello.suripu.logsindexer.settings.ElasticSearchIndexSettings;
 import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
+import com.hello.suripu.logsindexer.models.SenseDocument;
 import com.hello.suripu.logsindexer.settings.ElasticSearchIndexMappings;
-
+import com.hello.suripu.logsindexer.settings.ElasticSearchIndexSettings;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -33,6 +35,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static com.codahale.metrics.MetricRegistry.name;
+
 
 public class ElasticSearchIndexer implements IRecordProcessor {
 
@@ -41,26 +45,33 @@ public class ElasticSearchIndexer implements IRecordProcessor {
     private final TransportClient transportClient;
     private final ElasticSearchConfiguration elasticSearchConfiguration;
 
+    private final Meter bulkSize;
+    private Timer bulkTimer;
+
+    private BulkProcessor bulkProcessor;
     private List<String> currentIndexes;
 
-    public ElasticSearchIndexer(final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration) {
+
+    public ElasticSearchIndexer(final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
         this.transportClient = transportClient;
         this.elasticSearchConfiguration = elasticSearchConfiguration;
+
+        bulkSize = metricRegistry.meter(name(ElasticSearchIndexer.class, "bulk-items"));
+        bulkTimer = metricRegistry.timer(name(ElasticSearchIndexer.class, "bulk-process-time"));
     }
 
 
     public void initialize(final String shardId) {
         currentIndexes = getCurrentIndexes(transportClient);
-    }
-
-    public void processRecords(List<Record> records, IRecordProcessorCheckpointer checkpointer) {
-
-        final BulkProcessor bulkProcessor = BulkProcessor.builder(
+        bulkProcessor = BulkProcessor.builder(
                 transportClient,
                 new BulkProcessor.Listener() {
+                    Timer.Context context;
                     public void beforeBulk(long executionId,
                                            BulkRequest request) {
                         LOGGER.debug("Prepared !");
+                        context = bulkTimer.time();
+
                     }
 
                     public void afterBulk(long executionId,
@@ -68,12 +79,14 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                                           BulkResponse response) {
 
                         LOGGER.info("Successfully bulk-processed {} documents from {} requests !", response.getItems().length, request.requests().size());
+                        bulkSize.mark(response.getItems().length);
+                        context.stop();
                     }
 
                     public void afterBulk(long executionId,
                                           BulkRequest request,
                                           Throwable failure) {
-                        LOGGER.error("Failed !");
+                        LOGGER.error("Failed because {} !", failure.getMessage());
                     }
 
                 })
@@ -81,7 +94,9 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                 .setBulkSize(new ByteSizeValue(elasticSearchConfiguration.getMaxBulkSizeMb(), ByteSizeUnit.MB))
                 .setConcurrentRequests(elasticSearchConfiguration.getBulkConcurrentRequests())
                 .build();
+    }
 
+    public void processRecords(List<Record> records, IRecordProcessorCheckpointer checkpointer) {
         for (final Record record : records) {
             try {
                 final LoggingProtos.BatchLogMessage batchLogMessage = LoggingProtos.BatchLogMessage.parseFrom(record.getData().array());
@@ -108,19 +123,21 @@ public class ElasticSearchIndexer implements IRecordProcessor {
                 LOGGER.error("Failed to parse protobuf because {}", e.getMessage());
             }
         }
+    }
+
+    public void shutdown(IRecordProcessorCheckpointer iRecordProcessorCheckpointer, ShutdownReason shutdownReason) {
+        LOGGER.info("shutdown at {} because {}", iRecordProcessorCheckpointer.toString(), shutdownReason);
+
         try {
             bulkProcessor.awaitClose(elasticSearchConfiguration.getBulkAwaitCloseSeconds(), TimeUnit.SECONDS);
-            LOGGER.trace("Bulk is full and will be closed in {} seconds", elasticSearchConfiguration.getBulkAwaitCloseSeconds());
+            LOGGER.info("Bulk will be closed in {} seconds", elasticSearchConfiguration.getBulkAwaitCloseSeconds());
         }
         catch (final InterruptedException ie) {
             LOGGER.error("Failed to close bulk processor because {}", ie.getMessage());
             bulkProcessor.close(); // force closing bulk
             LOGGER.info("Successfully forced closing bulk", ie.getMessage());
         }
-    }
 
-    public void shutdown(IRecordProcessorCheckpointer iRecordProcessorCheckpointer, ShutdownReason shutdownReason) {
-        LOGGER.info("shutdown at {} because {}", iRecordProcessorCheckpointer.toString(), shutdownReason);
         if(shutdownReason == ShutdownReason.TERMINATE) {
             LOGGER.warn("Going to checkpoint");
             try {

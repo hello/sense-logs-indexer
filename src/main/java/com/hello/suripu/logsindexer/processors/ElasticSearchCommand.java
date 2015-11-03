@@ -69,7 +69,8 @@ public class ElasticSearchCommand extends SenseLogsCommand<SenseLogsConfiguratio
         kinesisConfig.withIdleTimeBetweenReadsInMillis(10000);
 
         final IRecordProcessorFactory processorFactory = new ElasticSearchIndexerFactory(
-                configuration.getElasticSearchConfiguration()
+                configuration.getElasticSearchConfiguration(),
+                environment.metrics()
         );
 
         final Worker kinesisWorker = new Worker(processorFactory, kinesisConfig);
