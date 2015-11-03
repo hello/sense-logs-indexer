@@ -1,6 +1,7 @@
 package com.hello.suripu.logsindexer.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.hello.suripu.coredw8.configuration.GraphiteConfiguration;
 import io.dropwizard.Configuration;
 
 import javax.validation.Valid;
@@ -8,6 +9,24 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 
 public class SenseLogsConfiguration extends Configuration {
+    @Valid
+    @NotNull
+    @JsonProperty("metrics_enabled")
+    private Boolean metricsEnabled;
+
+    public Boolean getMetricsEnabled() {
+        return metricsEnabled;
+    }
+
+    @Valid
+    @NotNull
+    @JsonProperty("graphite")
+    private GraphiteConfiguration graphite;
+
+    public GraphiteConfiguration getGraphite() {
+        return graphite;
+    }
+
     @Valid
     @JsonProperty("debug")
     private Boolean debug;
