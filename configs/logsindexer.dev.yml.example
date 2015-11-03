@@ -17,8 +17,8 @@ elastic_search:
   nodes_sampler_interval: 30s
   ping_timeout: 30s
   index_prefix: sense-logs-
-  max_bulk_actions: 300
-  max_bulk_size_mb: 300
+  max_bulk_actions: 50
+  max_bulk_size_mb: 200
   bulk_concurrent_requests: 2
   bulk_await_close_seconds: 15
 
