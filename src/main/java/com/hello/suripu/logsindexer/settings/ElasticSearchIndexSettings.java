@@ -25,6 +25,7 @@ public class ElasticSearchIndexSettings {
             "- => ALPHANUM",
             "+ => ALPHANUM",
             "/ => ALPHANUM",
+            "� => ALPHANUM"
     };
 
     public final String filterType;
