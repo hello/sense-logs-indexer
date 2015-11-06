@@ -68,9 +68,9 @@ public class ElasticSearchIndexer implements LogIndexer {
     }
 
 
-    public void index(final LoggingProtos.BatchLogMessage batchLogMessage) {
+    public int index(final LoggingProtos.BatchLogMessage batchLogMessage) {
         final String currentIndex = determineIndexName(batchLogMessage);
-        addSenseLogDocumentToBulk(currentIndex, batchLogMessage);
+        return addSenseLogDocumentToBulk(currentIndex, batchLogMessage);
     }
 
     private Set<String> getAllIndexes(final TransportClient client) {
@@ -124,12 +124,13 @@ public class ElasticSearchIndexer implements LogIndexer {
         return false;
     }
 
-    private void addSenseLogDocumentToBulk(final String indexName, final LoggingProtos.BatchLogMessage batchLogMessage) {
+    private int addSenseLogDocumentToBulk(final String indexName, final LoggingProtos.BatchLogMessage batchLogMessage) {
         documentIncomingMeter.mark(batchLogMessage.getMessagesCount());
         for(final LoggingProtos.LogMessage log : batchLogMessage.getMessagesList()) {
             final Long timestamp = (log.getTs() == 0) ? batchLogMessage.getReceivedAt() : log.getTs() * 1000L;
             final SenseDocument senseDocument = SenseDocument.create(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion());
             bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
         }
+        return batchLogMessage.getMessagesCount();
     }
 }

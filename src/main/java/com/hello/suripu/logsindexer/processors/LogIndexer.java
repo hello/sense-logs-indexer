@@ -4,6 +4,6 @@ import com.hello.suripu.api.logging.LoggingProtos;
 
 
 public interface LogIndexer {
-    void index(final LoggingProtos.BatchLogMessage t);
+    int index(final LoggingProtos.BatchLogMessage t);
 }
 

@@ -45,7 +45,8 @@ public class ElasticSearchProcessor implements IRecordProcessor {
                     continue;
                 }
 
-                elasticSearchIndexer.index(batchLogMessage);
+                int processedMessages = elasticSearchIndexer.index(batchLogMessage);
+                LOGGER.trace(" Processed {} messages from batch {}", processedMessages);
 
             } catch (InvalidProtocolBufferException e) {
                 LOGGER.error("Failed to parse protobuf because {}", e.getMessage());
