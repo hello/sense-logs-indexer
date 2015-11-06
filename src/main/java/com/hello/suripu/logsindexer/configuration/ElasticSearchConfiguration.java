@@ -70,6 +70,14 @@ public class ElasticSearchConfiguration {
 
     @Valid
     @NotNull
+    @JsonProperty("fallback_index")
+    private String fallback_index;
+    public String getFallbackIndex() {
+        return fallback_index;
+    }
+
+    @Valid
+    @NotNull
     @JsonProperty("max_bulk_actions")
     private Integer maxBulkActions;
     public Integer getMaxBulkActions() {

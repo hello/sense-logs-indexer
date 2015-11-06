@@ -15,11 +15,15 @@ public class ElasticSearchIndexerFactory implements IRecordProcessorFactory {
         this.elasticSearchConfiguration = elasticSearchConfiguration;
         this.metricRegistry = metricRegistry;
     }
+
     public IRecordProcessor createProcessor() {
-        return new ElasticSearchIndexer(
-                ElasticSearchTransportClient.create(elasticSearchConfiguration),
-                elasticSearchConfiguration,
-                metricRegistry
+        return ElasticSearchProcessor.create(
+                new ElasticSearchIndexer(
+                        ElasticSearchTransportClient.create(elasticSearchConfiguration),
+                        elasticSearchConfiguration,
+                        metricRegistry
+                )
+
         );
     }
 }
