@@ -27,10 +27,12 @@ public class InstrumentedBulkProcessorListener implements BulkProcessor.Listener
     }
 
     public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+        final String lastIndex =  response.getItems().length > 0 ? response.getItems()[response.getItems().length - 1].getIndex() : "";
         LOGGER.info(
-                "Successfully bulk-processed {} documents from {} requests",
+                "Successfully bulk-processed {} documents from {} requests, last index used was {}",
                 response.getItems().length,
-                request.requests().size()
+                request.requests().size(),
+                lastIndex
         );
         documentOutgoingMeter.mark(response.getItems().length);
         context.stop();
