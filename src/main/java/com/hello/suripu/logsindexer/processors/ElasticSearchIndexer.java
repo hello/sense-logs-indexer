@@ -9,11 +9,10 @@ import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
 import com.hello.suripu.logsindexer.models.SenseDocument;
 import com.hello.suripu.logsindexer.settings.ElasticSearchIndexMappings;
 import com.hello.suripu.logsindexer.settings.ElasticSearchIndexSettings;
+import com.hello.suripu.logsindexer.settings.InstrumentedBulkProcessorListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -26,6 +25,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.Set;
 
 import static com.codahale.metrics.MetricRegistry.name;
@@ -46,46 +46,21 @@ public class ElasticSearchIndexer implements LogIndexer {
 
     private BulkProcessor bulkProcessor;
     private Set<String> allIndexes;
-    private String currentIndex;
 
 
-    public ElasticSearchIndexer(final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
+    public ElasticSearchIndexer (final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
         this.transportClient = transportClient;
         this.elasticSearchConfiguration = elasticSearchConfiguration;
+
 
         documentIncomingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-incoming"));
         documentOutgoingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-outgoing"));
         bulkTimer = metricRegistry.timer(name(ElasticSearchProcessor.class, "bulk-process-time"));
 
         allIndexes = getAllIndexes(transportClient);
-        bulkProcessor = BulkProcessor.builder(
-                transportClient,
-                new BulkProcessor.Listener() {
-                    Timer.Context context;
-                    public void beforeBulk(long executionId,
-                                           BulkRequest request) {
-                        LOGGER.trace("Prepared !");
-                        context = bulkTimer.time();
 
-                    }
-
-                    public void afterBulk(long executionId,
-                                          BulkRequest request,
-                                          BulkResponse response) {
-
-                        LOGGER.info("Successfully bulk-processed {} documents from {} requests, sent to index {} !", response.getItems().length, request.requests().size(), currentIndex);
-                        documentOutgoingMeter.mark(response.getItems().length);
-                        context.stop();
-                    }
-
-                    public void afterBulk(long executionId,
-                                          BulkRequest request,
-                                          Throwable failure) {
-                        LOGGER.error("Failed because {} !", failure.getMessage());
-                        context.stop();
-                    }
-
-                })
+        final BulkProcessor.Listener instrumentedListener = new InstrumentedBulkProcessorListener(bulkTimer, documentOutgoingMeter);
+        bulkProcessor = BulkProcessor.builder(transportClient, instrumentedListener)
                 .setBulkActions(elasticSearchConfiguration.getMaxBulkActions())
                 .setBulkSize(new ByteSizeValue(elasticSearchConfiguration.getMaxBulkSizeMb(), ByteSizeUnit.MB))
                 .setConcurrentRequests(elasticSearchConfiguration.getBulkConcurrentRequests())
@@ -94,7 +69,7 @@ public class ElasticSearchIndexer implements LogIndexer {
 
 
     public void index(final LoggingProtos.BatchLogMessage batchLogMessage) {
-        currentIndex = determineIndexName(batchLogMessage);
+        final String currentIndex = determineIndexName(batchLogMessage);
         addSenseLogDocumentToBulk(currentIndex, batchLogMessage);
     }
 
