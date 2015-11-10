@@ -1,174 +1,136 @@
 package com.hello.suripu.logsindexer.processors;
 
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
-import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessor;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownReason;
-import com.amazonaws.services.kinesis.model.Record;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.common.collect.Sets;
 import com.hello.suripu.api.logging.LoggingProtos;
 import com.hello.suripu.logsindexer.configuration.ElasticSearchConfiguration;
 import com.hello.suripu.logsindexer.models.SenseDocument;
 import com.hello.suripu.logsindexer.settings.ElasticSearchIndexMappings;
 import com.hello.suripu.logsindexer.settings.ElasticSearchIndexSettings;
+import com.hello.suripu.logsindexer.settings.InstrumentedBulkProcessorListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.transport.ConnectTransportException;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
 import static com.codahale.metrics.MetricRegistry.name;
 
 
-public class ElasticSearchIndexer implements IRecordProcessor {
+public class ElasticSearchIndexer implements LogIndexer {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ElasticSearchIndexer.class);
+    private static final int MAX_INDEX_CREATION_ATTEMPTS = 5;
+
 
     private final TransportClient transportClient;
     private final ElasticSearchConfiguration elasticSearchConfiguration;
 
-    private final Meter bulkSize;
-    private Timer bulkTimer;
+    private final Meter documentIncomingMeter;
+    private final Meter documentOutgoingMeter;
+    private final Timer bulkTimer;
 
     private BulkProcessor bulkProcessor;
-    private List<String> currentIndexes;
+    private Set<String> allIndexes;
 
 
-    public ElasticSearchIndexer(final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
+    public ElasticSearchIndexer (final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
         this.transportClient = transportClient;
         this.elasticSearchConfiguration = elasticSearchConfiguration;
 
-        bulkSize = metricRegistry.meter(name(ElasticSearchIndexer.class, "bulk-items"));
-        bulkTimer = metricRegistry.timer(name(ElasticSearchIndexer.class, "bulk-process-time"));
-    }
 
+        documentIncomingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-incoming"));
+        documentOutgoingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-outgoing"));
+        bulkTimer = metricRegistry.timer(name(ElasticSearchProcessor.class, "bulk-process-time"));
 
-    public void initialize(final String shardId) {
-        currentIndexes = getCurrentIndexes(transportClient);
-        bulkProcessor = BulkProcessor.builder(
-                transportClient,
-                new BulkProcessor.Listener() {
-                    Timer.Context context;
-                    public void beforeBulk(long executionId,
-                                           BulkRequest request) {
-                        LOGGER.debug("Prepared !");
-                        context = bulkTimer.time();
+        allIndexes = getAllIndexes(transportClient);
 
-                    }
-
-                    public void afterBulk(long executionId,
-                                          BulkRequest request,
-                                          BulkResponse response) {
-
-                        LOGGER.info("Successfully bulk-processed {} documents from {} requests !", response.getItems().length, request.requests().size());
-                        bulkSize.mark(response.getItems().length);
-                        context.stop();
-                    }
-
-                    public void afterBulk(long executionId,
-                                          BulkRequest request,
-                                          Throwable failure) {
-                        LOGGER.error("Failed because {} !", failure.getMessage());
-                        context.stop();
-                    }
-
-                })
+        final BulkProcessor.Listener instrumentedListener = new InstrumentedBulkProcessorListener(bulkTimer, documentOutgoingMeter);
+        bulkProcessor = BulkProcessor.builder(transportClient, instrumentedListener)
                 .setBulkActions(elasticSearchConfiguration.getMaxBulkActions())
                 .setBulkSize(new ByteSizeValue(elasticSearchConfiguration.getMaxBulkSizeMb(), ByteSizeUnit.MB))
                 .setConcurrentRequests(elasticSearchConfiguration.getBulkConcurrentRequests())
                 .build();
     }
 
-    public void processRecords(List<Record> records, IRecordProcessorCheckpointer checkpointer) {
-        for (final Record record : records) {
-            try {
-                final LoggingProtos.BatchLogMessage batchLogMessage = LoggingProtos.BatchLogMessage.parseFrom(record.getData().array());
-                if(batchLogMessage.hasLogType()) {
-                    if (!batchLogMessage.getLogType().equals(LoggingProtos.BatchLogMessage.LogType.SENSE_LOG)) {
-                        LOGGER.trace("Skip because this is not sense logs");
-                        continue;
-                    }
-                    for(final LoggingProtos.LogMessage log : batchLogMessage.getMessagesList()) {
-                        final Long timestamp = (log.getTs() == 0) ? batchLogMessage.getReceivedAt() : log.getTs() * 1000L;
 
-                        final String indexName = elasticSearchConfiguration.getIndexPrefix() + new DateTime(timestamp).toString(DateTimeFormat.forPattern("yyyy-MM-dd"));
-
-                        if (!currentIndexes.contains(indexName)) {
-                            createIndex(indexName); // Create new index with custom settings and mappings on the fly
-                            currentIndexes = getCurrentIndexes(transportClient);  // Update current indexes list
-                        }
-
-                        bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(
-                                new SenseDocument(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion()).toMap()));
-                    }
-                }
-            } catch (InvalidProtocolBufferException e) {
-                LOGGER.error("Failed to parse protobuf because {}", e.getMessage());
-            }
-        }
+    public int index(final LoggingProtos.BatchLogMessage batchLogMessage) {
+        final String currentIndex = determineIndexName(batchLogMessage);
+        return addSenseLogDocumentToBulk(currentIndex, batchLogMessage);
     }
 
-    public void shutdown(IRecordProcessorCheckpointer iRecordProcessorCheckpointer, ShutdownReason shutdownReason) {
-        LOGGER.info("shutdown at {} because {}", iRecordProcessorCheckpointer.toString(), shutdownReason);
-
-        try {
-            bulkProcessor.awaitClose(elasticSearchConfiguration.getBulkAwaitCloseSeconds(), TimeUnit.SECONDS);
-            LOGGER.warn("Bulk will be closed in {} seconds", elasticSearchConfiguration.getBulkAwaitCloseSeconds());
-        }
-        catch (final InterruptedException ie) {
-            LOGGER.error("Failed to close bulk processor because {}", ie.getMessage());
-            bulkProcessor.close(); // force closing bulk
-            LOGGER.info("Successfully forced closing bulk", ie.getMessage());
-        }
-
-        if(shutdownReason == ShutdownReason.TERMINATE) {
-            LOGGER.warn("Going to checkpoint");
-            try {
-                iRecordProcessorCheckpointer.checkpoint();
-                LOGGER.warn("Checkpointed successfully");
-            } catch (InvalidStateException e) {
-                LOGGER.error(e.getMessage());
-            } catch (ShutdownException e) {
-                LOGGER.error(e.getMessage());
-            }
-        }
+    private Set<String> getAllIndexes(final TransportClient client) {
+        return Sets.newHashSet(client.admin().cluster().prepareState().execute().actionGet().getState().getMetaData().concreteAllIndices());
     }
 
-    private List<String> getCurrentIndexes(final TransportClient client) {
-        return Arrays.asList(client.admin().cluster().prepareState().execute().actionGet().getState().getMetaData().concreteAllIndices());
+    private String determineIndexName(final LoggingProtos.BatchLogMessage batchLogMessage) {
+        if (!batchLogMessage.hasReceivedAt() || batchLogMessage.getReceivedAt() == 0) {
+            LOGGER.error("Batch log message does not have receivedAt time");
+            return elasticSearchConfiguration.getFallbackIndex();
+        }
+
+        final String indexName = elasticSearchConfiguration.getIndexPrefix() +
+                new DateTime(batchLogMessage.getReceivedAt(), DateTimeZone.UTC).toString(DateTimeFormat.forPattern("yyyy-MM-dd"));
+
+        if (allIndexes.contains(indexName)) {
+            return indexName;
+        }
+
+        final Boolean indexCreated = createIndex(indexName); // Create new index with custom settings and mappings on the fly
+
+        if (indexCreated){
+            allIndexes.add(indexName); // Update indexes set
+            return indexName;
+        }
+        return elasticSearchConfiguration.getFallbackIndex();
     }
 
-
-    private void createIndex(final String indexName) {
+    private Boolean createIndex(final String indexName) {
         LOGGER.info("Prepare to create index {}", indexName);
         final CreateIndexRequest createIndexRequest = new CreateIndexRequest(
                 indexName,
                 ImmutableSettings.settingsBuilder().loadFromSource(ElasticSearchIndexSettings.createDefault().toJSONString().get()).build()
         ).mapping(ElasticSearchIndexMappings.DEFAULT_KEY, ElasticSearchIndexMappings.createDefault().get());
 
-        try {
-            final CreateIndexResponse createIndexResponse = transportClient.admin().indices().create(createIndexRequest).actionGet();
-            LOGGER.info("Index {} created - {}", indexName, createIndexResponse.isAcknowledged());
-        } catch (final IndexAlreadyExistsException iaee) {
-            LOGGER.warn("Index {} already existed", indexName);
+        for (int k = 0; k < MAX_INDEX_CREATION_ATTEMPTS ; k++) {
+            try {
+                final CreateIndexResponse createIndexResponse = transportClient.admin().indices().create(createIndexRequest).actionGet();
+                LOGGER.info("Index {} created - {}", indexName, createIndexResponse.isAcknowledged());
+                return true;
+            } catch (final IndexAlreadyExistsException iaee) {
+                LOGGER.warn("Index {} already existed", indexName);
+                return true;
+            } catch (final ConnectTransportException cte) {
+                LOGGER.warn("Failed to create index {} because of a connection error", indexName);
+            } catch (final Exception e) {
+                LOGGER.warn("Failed to create index {} because {}", e.getMessage());
+            }
+            LOGGER.warn("Attempt {} to create index {}", k, indexName);
         }
+        return false;
+    }
+
+    private int addSenseLogDocumentToBulk(final String indexName, final LoggingProtos.BatchLogMessage batchLogMessage) {
+        documentIncomingMeter.mark(batchLogMessage.getMessagesCount());
+        for(final LoggingProtos.LogMessage log : batchLogMessage.getMessagesList()) {
+            final Long timestamp = (log.getTs() == 0) ? batchLogMessage.getReceivedAt() : log.getTs() * 1000L;
+            final SenseDocument senseDocument = SenseDocument.create(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion());
+            bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
+        }
+        return batchLogMessage.getMessagesCount();
     }
 }

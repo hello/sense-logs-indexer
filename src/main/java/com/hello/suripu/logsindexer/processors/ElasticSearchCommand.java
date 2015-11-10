@@ -78,7 +78,6 @@ public class ElasticSearchCommand extends SenseLogsCommand<SenseLogsConfiguratio
         kinesisConfig.withInitialPositionInStream(InitialPositionInStream.LATEST);
         kinesisConfig.withMaxRecords(configuration.getMaxRecords());
         kinesisConfig.withKinesisEndpoint(configuration.getKinesisConfiguration().getEndpoint());
-        kinesisConfig.withIdleTimeBetweenReadsInMillis(10000);
 
         final IRecordProcessorFactory processorFactory = new ElasticSearchIndexerFactory(
                 configuration.getElasticSearchConfiguration(),
