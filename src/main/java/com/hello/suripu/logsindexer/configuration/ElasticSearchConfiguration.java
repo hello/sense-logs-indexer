@@ -78,6 +78,14 @@ public class ElasticSearchConfiguration {
 
     @Valid
     @NotNull
+    @JsonProperty("fw_crash_index")
+    private String fwCrashIndex;
+    public String getFwCrashIndex() {
+        return fwCrashIndex;
+    }
+
+    @Valid
+    @NotNull
     @JsonProperty("max_bulk_actions")
     private Integer maxBulkActions;
     public Integer getMaxBulkActions() {
