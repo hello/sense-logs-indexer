@@ -4,7 +4,7 @@ kinesis:
   endpoint : https://kinesis.us-east-1.amazonaws.com
   stream : logs
 
-app_name: ESLogIndexerDev
+app_name: ESLogIndexer
 
 max_records: 200
 
