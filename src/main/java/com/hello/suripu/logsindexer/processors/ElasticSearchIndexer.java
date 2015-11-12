@@ -130,6 +130,10 @@ public class ElasticSearchIndexer implements LogIndexer {
             final Long timestamp = (log.getTs() == 0) ? batchLogMessage.getReceivedAt() : log.getTs() * 1000L;
             final SenseDocument senseDocument = SenseDocument.create(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion());
             bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
+
+            if (senseDocument.hasFirmwareCrash()){
+                bulkProcessor.add(new IndexRequest(elasticSearchConfiguration.getFwCrashIndex(), SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
+            }
         }
         return batchLogMessage.getMessagesCount();
     }

@@ -4,7 +4,7 @@ kinesis:
   endpoint : https://kinesis.us-east-1.amazonaws.com
   stream : logs
 
-app_name: LogIndexerDev
+app_name: ESLogIndexerDev
 
 max_records: 200
 
@@ -18,6 +18,7 @@ elastic_search:
   ping_timeout: 30s
   index_prefix: sense-logs-
   fallback_index: sense-logs-fallback
+  fw_crash_index: sense-logs-fw-crash
   max_bulk_actions: 50  # execute bulk every ...
   max_bulk_size_mb: 200  # flush bulk every ...
   bulk_concurrent_requests: 0
