@@ -4,10 +4,13 @@ package com.hello.suripu.logsindexer.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 
@@ -17,6 +20,14 @@ public class SenseDocument {
     private static final String WIFI_INFO_REGEX = "(?s)^.*?(SSID RSSI UNIQUE).*$";
     private static final String DUST_REGEX = "(?s)^.*?(dust).*$";
     public static final String DEFAULT_CATEGORY = "sense";
+    private static final Map<String, ArrayList<String>> FIRMWARE_VERSION_MAP = ImmutableMap.of(
+            "0.7.6", Lists.newArrayList("50F4C5A7"),
+            "0.8.7", Lists.newArrayList("74812427", "3DBC3140"),
+            "0.9.1", Lists.newArrayList("74812427", "2CB67805", "441A665B"),
+            "0.9.2", Lists.newArrayList("74812427"),
+            "0.9.3", Lists.newArrayList("1CBD0136")
+    );
+
 
     public final String senseId;
     public final Long epochMillis;
@@ -69,6 +80,12 @@ public class SenseDocument {
     @JsonProperty("has_dust")
     public Boolean hasDust() {
         return text.matches(DUST_REGEX);
+    }
+
+    @JsonProperty("has_expected_firmware")
+    public Boolean hasExpectedFirmware() {
+        return FIRMWARE_VERSION_MAP.containsKey(topFirmwareVersion) &&
+               FIRMWARE_VERSION_MAP.get(topFirmwareVersion).contains(middleFirmwareVersion);
     }
 
     public Map<String, Object> toMap() {
