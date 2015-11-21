@@ -4,7 +4,7 @@ package com.hello.suripu.logsindexer.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -19,12 +19,12 @@ public class SenseDocument {
     private static final String WIFI_INFO_REGEX = "(?s)^.*?(SSID RSSI UNIQUE).*$";
     private static final String DUST_REGEX = "(?s)^.*?(dust).*$";
     public static final String DEFAULT_CATEGORY = "sense";
-    private static final Map<String, ImmutableList<String>> FIRMWARE_VERSION_MAP = ImmutableMap.of(
-            "0.7.6", ImmutableList.of("50F4C5A7"),
-            "0.8.7", ImmutableList.of("74812427", "3DBC3140"),
-            "0.9.1", ImmutableList.of("74812427", "2CB67805", "441A665B"),
-            "0.9.2", ImmutableList.of("74812427"),
-            "0.9.3", ImmutableList.of("1CBD0136")
+    private static final Map<String, ImmutableSet<String>> FIRMWARE_VERSION_MAP = ImmutableMap.of(
+            "0.7.6", ImmutableSet.of("50F4C5A7"),
+            "0.8.7", ImmutableSet.of("74812427", "3DBC3140"),
+            "0.9.1", ImmutableSet.of("74812427", "2CB67805", "441A665B"),
+            "0.9.2", ImmutableSet.of("74812427"),
+            "0.9.3", ImmutableSet.of("1CBD0136")
     );
 
 
@@ -81,10 +81,10 @@ public class SenseDocument {
         return text.matches(DUST_REGEX);
     }
 
-    @JsonProperty("has_expected_firmware")
-    public Boolean hasExpectedFirmware() {
+    @JsonProperty("has_unexpected_firmware")
+    public Boolean hasUnexpectedFirmware() {
         return FIRMWARE_VERSION_MAP.containsKey(topFirmwareVersion) &&
-               FIRMWARE_VERSION_MAP.get(topFirmwareVersion).contains(middleFirmwareVersion);
+                (!FIRMWARE_VERSION_MAP.get(topFirmwareVersion).contains(middleFirmwareVersion));
     }
 
     public Map<String, Object> toMap() {
