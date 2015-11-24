@@ -92,7 +92,7 @@ public class SenseDocument {
 
     @JsonProperty("combined_firmware_versions")
     public String combinedFirmwareVersions() {
-        return String.format("%s-%s", topFirmwareVersion, middleFirmwareVersion);
+        return String.format("%s___%s", topFirmwareVersion, middleFirmwareVersion);
     }
 
     public Map<String, Object> toMap() {
