@@ -49,5 +49,5 @@ logging:
       ident: logsindexer-dev
 
 redis:
-  host: stats.xoe7je.0001.use1.cache.amazonaws.com
+  host: localhost
   port: 6379
