@@ -87,6 +87,11 @@ public class SenseDocument {
                 (!FIRMWARE_VERSION_MAP.get(topFirmwareVersion).contains(middleFirmwareVersion));
     }
 
+    @JsonProperty("combined_firmware_versions")
+    public String combinedFirmwareVersions() {
+        return topFirmwareVersion + middleFirmwareVersion;
+    }
+
     public Map<String, Object> toMap() {
         return objectMapper.convertValue(this, Map.class);
     }
