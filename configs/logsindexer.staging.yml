@@ -47,3 +47,7 @@ logging:
       host: logs2.papertrailapp.com
       port: 11366
       ident: logsindexer-dev
+
+redis:
+  host: stats.xoe7je.0001.use1.cache.amazonaws.com
+  port: 6379

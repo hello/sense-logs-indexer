@@ -25,6 +25,10 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisDataException;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.Set;
 
@@ -35,28 +39,38 @@ public class ElasticSearchIndexer implements LogIndexer {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ElasticSearchIndexer.class);
     private static final int MAX_INDEX_CREATION_ATTEMPTS = 5;
+    private static final int CERTIFIED_FIRMWARE_UPDATE_PERIOD_MINUTES = 5;
+    private static final String CERTIFIED_FIRMWARE_SET_KEY = "certified_firmware";
 
 
     private final TransportClient transportClient;
     private final ElasticSearchConfiguration elasticSearchConfiguration;
+    private final JedisPool jedisPool;
 
     private final Meter documentIncomingMeter;
     private final Meter documentOutgoingMeter;
     private final Timer bulkTimer;
 
+    private DateTime lastCertifiedFirmwareUpdated;
+    private Integer certifiedFirmwareUpdateCount;
+    private Set<String> certifiedCombinedFirmwareVersions;
+
     private BulkProcessor bulkProcessor;
     private Set<String> allIndexes;
 
 
-    public ElasticSearchIndexer (final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final MetricRegistry metricRegistry) {
+    public ElasticSearchIndexer (final TransportClient transportClient, final ElasticSearchConfiguration elasticSearchConfiguration, final JedisPool jedisPool, final MetricRegistry metricRegistry) {
         this.transportClient = transportClient;
         this.elasticSearchConfiguration = elasticSearchConfiguration;
+        this.jedisPool = jedisPool;
 
 
         documentIncomingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-incoming"));
         documentOutgoingMeter = metricRegistry.meter(name(ElasticSearchProcessor.class, "document-outgoing"));
         bulkTimer = metricRegistry.timer(name(ElasticSearchProcessor.class, "bulk-process-time"));
 
+        lastCertifiedFirmwareUpdated = DateTime.now(DateTimeZone.UTC);
+        certifiedFirmwareUpdateCount = 0;
         allIndexes = getAllIndexes(transportClient);
 
         final BulkProcessor.Listener instrumentedListener = new InstrumentedBulkProcessorListener(bulkTimer, documentOutgoingMeter);
@@ -128,7 +142,7 @@ public class ElasticSearchIndexer implements LogIndexer {
         documentIncomingMeter.mark(batchLogMessage.getMessagesCount());
         for(final LoggingProtos.LogMessage log : batchLogMessage.getMessagesList()) {
             final Long timestamp = (log.getTs() == 0) ? batchLogMessage.getReceivedAt() : log.getTs() * 1000L;
-            final SenseDocument senseDocument = SenseDocument.create(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion());
+            final SenseDocument senseDocument = SenseDocument.create(log.getDeviceId(), timestamp, log.getMessage(), log.getOrigin(), log.getTopFwVersion(), log.getMiddleFwVersion(), getCertifiedCombinedFirmwareVersions());
             bulkProcessor.add(new IndexRequest(indexName, SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
 
             if (senseDocument.hasFirmwareCrash()){
@@ -136,5 +150,40 @@ public class ElasticSearchIndexer implements LogIndexer {
             }
         }
         return batchLogMessage.getMessagesCount();
+    }
+
+    private Set<String> getCertifiedCombinedFirmwareVersions() {
+        if (lastCertifiedFirmwareUpdated.plusMinutes(CERTIFIED_FIRMWARE_UPDATE_PERIOD_MINUTES).isBeforeNow()
+                || certifiedFirmwareUpdateCount == 0){
+            lastCertifiedFirmwareUpdated = DateTime.now(DateTimeZone.UTC);
+            Jedis jedis = null;
+            String exceptionMessage = "";
+            try {
+                jedis = jedisPool.getResource();
+                certifiedCombinedFirmwareVersions = jedis.smembers(CERTIFIED_FIRMWARE_SET_KEY);
+                LOGGER.info("Updated set of certified combined firmware versions");
+            } catch (JedisDataException e) {
+                exceptionMessage = String.format("Failed to get data from redis -  %s", e.getMessage());
+                LOGGER.error(exceptionMessage);
+            } catch (Exception e) {
+                exceptionMessage = String.format("Failed to update set of certified combined firmware versions because %s", e.getMessage());
+                LOGGER.error(exceptionMessage);
+            } finally {
+                if (jedis != null) {
+                    try {
+                        if (exceptionMessage.isEmpty()) {
+                            jedisPool.returnResource(jedis);
+                        } else {
+                            jedisPool.returnBrokenResource(jedis);
+                        }
+                    } catch (JedisException e) {
+                        LOGGER.error("Failed to return to resource {}", e.getMessage());
+                    }
+
+                }
+            }
+        }
+        certifiedFirmwareUpdateCount += 1;
+        return certifiedCombinedFirmwareVersions;
     }
 }

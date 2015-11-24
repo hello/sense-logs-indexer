@@ -40,3 +40,6 @@ graphite:
   include_metrics:
     - com.hello
 
+redis:
+  host: stats.xoe7je.0001.use1.cache.amazonaws.com
+  port: 6379

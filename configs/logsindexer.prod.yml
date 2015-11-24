@@ -51,3 +51,7 @@ logging:
       # timezone: UTC
       # facility: USER
       # sendLocalName: true
+
+redis:
+  host: stats.xoe7je.0001.use1.cache.amazonaws.com
+  port: 6379
