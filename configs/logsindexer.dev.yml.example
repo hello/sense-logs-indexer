@@ -40,3 +40,6 @@ graphite:
   include_metrics:
     - com.hello
 
+redis:
+  host: localhost
+  port: 6379

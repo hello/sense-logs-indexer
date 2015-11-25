@@ -2,6 +2,7 @@ package com.hello.suripu.logsindexer.configuration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hello.suripu.coredw8.configuration.GraphiteConfiguration;
+import com.hello.suripu.coredw8.configuration.RedisConfiguration;
 import io.dropwizard.Configuration;
 
 import javax.validation.Valid;
@@ -70,5 +71,13 @@ public class SenseLogsConfiguration extends Configuration {
     public ElasticSearchConfiguration getElasticSearchConfiguration() {
         return elasticSearchConfiguration;
     }
+
+
+    @Valid
+    @NotNull
+    @JsonProperty("redis")
+    private RedisConfiguration redisConfiguration;
+
+    public RedisConfiguration getRedisConfiguration() {return redisConfiguration;}
 }
 

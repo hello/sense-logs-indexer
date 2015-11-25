@@ -4,13 +4,14 @@ package com.hello.suripu.logsindexer.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 
 import java.util.Map;
+import java.util.Set;
 
 
 public class SenseDocument {
@@ -34,26 +35,29 @@ public class SenseDocument {
     public final String origin;
     public final String topFirmwareVersion;
     public final String middleFirmwareVersion;
+    public final Set<String> certifiedCombinedFirmwareVersions;
+
     private final ObjectMapper objectMapper;
 
-    private SenseDocument(final String senseId, final Long epochMillis, final String text, final String origin, final String topFirmwareVersion, final String middleFirmwareVersion, final ObjectMapper objectMapper) {
+    private SenseDocument(final String senseId, final Long epochMillis, final String text, final String origin, final String topFirmwareVersion, final String middleFirmwareVersion, final Set<String> certifiedCombinedFirmwareVersions, final ObjectMapper objectMapper) {
         this.senseId = senseId;
         this.epochMillis = epochMillis;
         this.text = text;
         this.origin =  origin;
         this.topFirmwareVersion = topFirmwareVersion;
         this.middleFirmwareVersion = middleFirmwareVersion;
+        this.certifiedCombinedFirmwareVersions = certifiedCombinedFirmwareVersions;
         this.objectMapper = objectMapper;
     }
 
-    public static SenseDocument create(final String senseId, final Long epochMillis, final String text, final String origin, final String topFwVersion, final String middleFwVersion) {
+    public static SenseDocument create(final String senseId, final Long epochMillis, final String text, final String origin, final String topFwVersion, final String middleFwVersion, final Set<String> certifiedCombinedFirmwareVersions) {
         final ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-        return new SenseDocument(senseId, epochMillis, text, origin, topFwVersion, middleFwVersion, objectMapper);
+        return new SenseDocument(senseId, epochMillis, text, origin, topFwVersion, middleFwVersion, certifiedCombinedFirmwareVersions, objectMapper);
     }
 
-    public static SenseDocument create(final String senseId, final Long epochMillis, final String text, final String origin, final String topFwVersion, final String middleFwVersion, final ObjectMapper objectMapper) {
-        return new SenseDocument(senseId, epochMillis, text, origin, topFwVersion, middleFwVersion, objectMapper);
+    public static SenseDocument create(final String senseId, final Long epochMillis, final String text, final String origin, final String topFwVersion, final String middleFwVersion, final Set<String> certifiedCombinedFirmwareVersions, final ObjectMapper objectMapper) {
+        return new SenseDocument(senseId, epochMillis, text, origin, topFwVersion, middleFwVersion, certifiedCombinedFirmwareVersions, objectMapper);
     }
 
     @JsonProperty("timestamp")
@@ -83,13 +87,12 @@ public class SenseDocument {
 
     @JsonProperty("has_unexpected_firmware")
     public Boolean hasUnexpectedFirmware() {
-        return FIRMWARE_VERSION_MAP.containsKey(topFirmwareVersion) &&
-                (!FIRMWARE_VERSION_MAP.get(topFirmwareVersion).contains(middleFirmwareVersion));
+        return !certifiedCombinedFirmwareVersions.contains(combinedFirmwareVersions());
     }
 
     @JsonProperty("combined_firmware_versions")
     public String combinedFirmwareVersions() {
-        return String.format("%s-%s", topFirmwareVersion, middleFirmwareVersion);
+        return String.format("%s___%s", topFirmwareVersion, middleFirmwareVersion);
     }
 
     public Map<String, Object> toMap() {

@@ -81,6 +81,7 @@ public class ElasticSearchCommand extends SenseLogsCommand<SenseLogsConfiguratio
 
         final IRecordProcessorFactory processorFactory = new ElasticSearchIndexerFactory(
                 configuration.getElasticSearchConfiguration(),
+                configuration.getRedisConfiguration(),
                 environment.metrics()
         );
 

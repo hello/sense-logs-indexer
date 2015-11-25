@@ -47,3 +47,7 @@ logging:
       host: logs2.papertrailapp.com
       port: 11366
       ident: logsindexer-dev
+
+redis:
+  host: localhost
+  port: 6379
