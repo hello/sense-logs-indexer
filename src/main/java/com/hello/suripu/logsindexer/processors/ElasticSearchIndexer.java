@@ -148,6 +148,10 @@ public class ElasticSearchIndexer implements LogIndexer {
             if (senseDocument.hasFirmwareCrash()){
                 bulkProcessor.add(new IndexRequest(elasticSearchConfiguration.getFwCrashIndex(), SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
             }
+
+            if (senseDocument.isInternalTestOnWifi()) {
+                bulkProcessor.add(new IndexRequest(elasticSearchConfiguration.getInternalTestIndex(), SenseDocument.DEFAULT_CATEGORY).source(senseDocument.toMap()));
+            }
         }
         return batchLogMessage.getMessagesCount();
     }

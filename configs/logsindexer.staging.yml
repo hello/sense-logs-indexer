@@ -19,6 +19,7 @@ elastic_search:
   index_prefix: sense-logs-
   fallback_index: sense-logs-fallback
   fw_crash_index: sense-logs-fw-crash
+  internal_test_index: sense-logs-internal-test
   max_bulk_actions: 50
   max_bulk_size_mb: 200
   bulk_concurrent_requests: 2

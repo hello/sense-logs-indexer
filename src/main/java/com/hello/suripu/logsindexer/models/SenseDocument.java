@@ -17,7 +17,7 @@ import java.util.Set;
 public class SenseDocument {
     private static final String ALARM_RINGING_REGEX = "(?s)^.*?(ALARM RINGING).*$";
     private static final String FIRMWARE_CRASH_REGEX = "(?s)^.*?(i2c recovery|ASSERT|fault|Bond Corruption).*$";
-    private static final String WIFI_INFO_REGEX = "(?s)^.*?(SSID RSSI UNIQUE).*$";
+    private static final String WIFI_INFO_REGEX = "(?s)^.*?(SSID).*$";
     private static final String DUST_REGEX = "(?s)^.*?(dust).*$";
     public static final String DEFAULT_CATEGORY = "sense";
     private static final Map<String, ImmutableSet<String>> FIRMWARE_VERSION_MAP = ImmutableMap.of(
@@ -27,6 +27,8 @@ public class SenseDocument {
             "0.9.2", ImmutableSet.of("74812427"),
             "0.9.3", ImmutableSet.of("1CBD0136")
     );
+
+    private static final Set<String> INTERNAL_TEST_SENSE_IDS = ImmutableSet.of("B0B5357C9CC1143E");
 
 
     public final String senseId;
@@ -81,8 +83,11 @@ public class SenseDocument {
     }
 
     @JsonProperty("has_dust")
-    public Boolean hasDust() {
-        return text.matches(DUST_REGEX);
+    public Boolean hasDust() { return text.matches(DUST_REGEX); }
+
+    @JsonProperty("combined_firmware_versions")
+    public String combinedFirmwareVersions() {
+        return String.format("%s___%s", topFirmwareVersion, middleFirmwareVersion);
     }
 
     @JsonProperty("has_unexpected_firmware")
@@ -90,12 +95,15 @@ public class SenseDocument {
         return !certifiedCombinedFirmwareVersions.contains(combinedFirmwareVersions());
     }
 
-    @JsonProperty("combined_firmware_versions")
-    public String combinedFirmwareVersions() {
-        return String.format("%s___%s", topFirmwareVersion, middleFirmwareVersion);
+    // Anything document marked as immortal will never be purged
+    public Boolean isInternalTestOnWifi() {
+        return INTERNAL_TEST_SENSE_IDS.contains(senseId) && hasWifiInfo();
     }
 
     public Map<String, Object> toMap() {
         return objectMapper.convertValue(this, Map.class);
     }
+
+
+
 }

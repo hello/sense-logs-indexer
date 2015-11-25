@@ -84,6 +84,13 @@ public class ElasticSearchConfiguration {
         return fwCrashIndex;
     }
 
+
+    @Valid
+    @NotNull
+    @JsonProperty("internal_test_index")
+    private String internalTestIndex;
+    public String getInternalTestIndex() { return internalTestIndex; }
+
     @Valid
     @NotNull
     @JsonProperty("max_bulk_actions")
@@ -115,4 +122,5 @@ public class ElasticSearchConfiguration {
     public Integer getBulkAwaitCloseSeconds() {
         return bulkAwaitCloseSeconds;
     }
+
 }
