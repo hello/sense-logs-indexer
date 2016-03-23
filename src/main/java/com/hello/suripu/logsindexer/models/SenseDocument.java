@@ -16,7 +16,7 @@ import java.util.Set;
 
 public class SenseDocument {
     private static final String ALARM_RINGING_REGEX = "(?s)^.*?(ALARM RINGING).*$";
-    private static final String FIRMWARE_CRASH_REGEX = "(?s)^.*?(i2c recovery|ASSERT|fault|Bond Corruption).*$";
+    private static final String FIRMWARE_CRASH_REGEX = "(?s)^.*?(i2c err|ASSERT|fault|Bond Corruption).*$";
     private static final String WIFI_INFO_REGEX = "(?s)^.*?(SSID).*$";
     private static final String DUST_REGEX = "(?s)^.*?(dust).*$";
     public static final String DEFAULT_CATEGORY = "sense";
