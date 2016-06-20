@@ -11,7 +11,7 @@ max_records: 200
 elastic_search:
   host: 5ef1fe1be448f837d91a38960abf6c0a.us-east-1.aws.found.io
   cluster: 5ef1fe1be448f837d91a38960abf6c0a
-  api_key: eltw1w74ocr2gncn2l
+  api_key: r3adk76np2q256hk41
   http_port: 9243
   tcp_port: 9343
   nodes_sampler_interval: 30s
