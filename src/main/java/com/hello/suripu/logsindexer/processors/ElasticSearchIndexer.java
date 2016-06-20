@@ -15,7 +15,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -117,7 +117,7 @@ public class ElasticSearchIndexer implements LogIndexer {
         LOGGER.info("Prepare to create index {}", indexName);
         final CreateIndexRequest createIndexRequest = new CreateIndexRequest(
                 indexName,
-                ImmutableSettings.settingsBuilder().loadFromSource(ElasticSearchIndexSettings.createDefault().toJSONString().get()).build()
+                Settings.settingsBuilder().loadFromSource(ElasticSearchIndexSettings.createDefault().toJSONString().get()).build()
         ).mapping(ElasticSearchIndexMappings.DEFAULT_KEY, ElasticSearchIndexMappings.createDefault().get());
 
         for (int k = 0; k < MAX_INDEX_CREATION_ATTEMPTS ; k++) {
