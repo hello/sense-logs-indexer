@@ -172,6 +172,11 @@
             <artifactId>dropwizard-papertrail</artifactId>
             <version>1.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.isomorphism</groupId>
+            <artifactId>token-bucket</artifactId>
+            <version>1.6</version>
+        </dependency>
     </dependencies>
 
     <build>

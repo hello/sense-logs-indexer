@@ -73,7 +73,7 @@ public class ElasticSearchIndexer implements LogIndexer {
         certifiedFirmwareUpdateCount = 0;
         allIndexes = getAllIndexes(transportClient);
 
-        final BulkProcessor.Listener instrumentedListener = new InstrumentedBulkProcessorListener(bulkTimer, documentOutgoingMeter);
+        final BulkProcessor.Listener instrumentedListener = InstrumentedBulkProcessorListener.create(bulkTimer, documentOutgoingMeter);
         bulkProcessor = BulkProcessor.builder(transportClient, instrumentedListener)
                 .setBulkActions(elasticSearchConfiguration.getMaxBulkActions())
                 .setBulkSize(new ByteSizeValue(elasticSearchConfiguration.getMaxBulkSizeMb(), ByteSizeUnit.MB))
@@ -129,9 +129,15 @@ public class ElasticSearchIndexer implements LogIndexer {
                 LOGGER.warn("Index {} already existed", indexName);
                 return true;
             } catch (final ConnectTransportException cte) {
-                LOGGER.warn("Failed to create index {} because of a connection error", indexName);
+                LOGGER.error("Failed to create index {} because of a connection error", indexName);
             } catch (final Exception e) {
-                LOGGER.warn("Failed to create index {} because {}", e.getMessage());
+                LOGGER.error("Failed to create index {} because {}", indexName, e.getMessage());
+                LOGGER.error("Bailing");
+                try {
+                    Thread.sleep(2000L);
+                } catch (InterruptedException e1) {}
+
+                System.exit(1);
             }
             LOGGER.warn("Attempt {} to create index {}", k, indexName);
         }

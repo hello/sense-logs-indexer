@@ -6,8 +6,12 @@ import com.codahale.metrics.Timer;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.isomorphism.util.TokenBucket;
+import org.isomorphism.util.TokenBuckets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 public class InstrumentedBulkProcessorListener implements BulkProcessor.Listener{
 
@@ -15,11 +19,21 @@ public class InstrumentedBulkProcessorListener implements BulkProcessor.Listener
 
     private final Timer bulkTimer;
     private final Meter documentOutgoingMeter;
+    private TokenBucket bucket;
     private Timer.Context context;
 
-    public InstrumentedBulkProcessorListener(final Timer bulkTimer, final Meter documentOutgoingMeter) {
+    private InstrumentedBulkProcessorListener(final Timer bulkTimer, final Meter documentOutgoingMeter, final TokenBucket tokenBucket) {
         this.bulkTimer = bulkTimer;
         this.documentOutgoingMeter = documentOutgoingMeter;
+        this.bucket = tokenBucket;
+    }
+
+    public static InstrumentedBulkProcessorListener create(final Timer bulkTimer, final Meter documentOutgoingMeter) {
+        final TokenBucket bucket = TokenBuckets.builder().withCapacity(10)
+                .withFixedIntervalRefillStrategy(10, 1, TimeUnit.MINUTES)
+                .build();
+        return new InstrumentedBulkProcessorListener(bulkTimer, documentOutgoingMeter, bucket);
+
     }
     public void beforeBulk(long executionId, BulkRequest request) {
         LOGGER.trace("Prepared !");
@@ -41,5 +55,10 @@ public class InstrumentedBulkProcessorListener implements BulkProcessor.Listener
     public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
         LOGGER.error("Failed because {} !", failure.getMessage());
         context.stop();
+        if(!bucket.tryConsume()) {
+            LOGGER.error("too many errors");
+            System.exit(1);
+        }
+
     }
 }
